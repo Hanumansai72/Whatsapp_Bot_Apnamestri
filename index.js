@@ -174,8 +174,38 @@ async function startBot() {
             msg.message.extendedTextMessage?.text ||
             "";
 
-        // New User — language selection is always shown in all 3 languages
+        // New User — check database first to see if they are already registered
         if (!users[sender]) {
+            const jidNumber = sender.split("@")[0];
+            const cleanedJidPhone = jidNumber.length === 12 && jidNumber.startsWith("91")
+                ? jidNumber.slice(2)
+                : jidNumber;
+
+            try {
+                const existing = await Vendor.findOne({
+                    $or: [
+                        { Phone_number: cleanedJidPhone },
+                        { Phone_number: jidNumber }
+                    ]
+                });
+
+                if (existing) {
+                    users[sender] = {
+                        step: "COMPLETE",
+                        phone: existing.Phone_number,
+                        name: existing.Owner_name,
+                        language: "English"
+                    };
+
+                    await sock.sendMessage(sender, {
+                        text: "You are already registered ✅\nమీరు ఇప్పటికే రిజిస్టర్ అయ్యారు ✅\nआप पहले से रजिस्टर्ड हैं ✅",
+                    });
+                    return;
+                }
+            } catch (dbErr) {
+                console.error("❌ Error checking existing user on greeting:", dbErr.message);
+            }
+
             users[sender] = {
                 step: "LANGUAGE",
             };
@@ -307,9 +337,26 @@ Choose Language / భాష ఎంచుకోండి / भाषा चुन
             }
 
             // Store as 10-digit number (strip 91 prefix if present)
-            user.phone = cleaned.length === 12 && cleaned.startsWith("91")
+            const enteredPhone = cleaned.length === 12 && cleaned.startsWith("91")
                 ? cleaned.slice(2)
                 : cleaned;
+
+            // Check if phone number is already registered in DB
+            try {
+                const existing = await Vendor.findOne({ Phone_number: enteredPhone });
+                if (existing) {
+                    await sock.sendMessage(sender, {
+                        text: t(user.language, "alreadyRegistered"),
+                    });
+                    user.step = "COMPLETE";
+                    user.phone = enteredPhone;
+                    return;
+                }
+            } catch (dbErr) {
+                console.error("❌ Error checking phone number existence:", dbErr.message);
+            }
+
+            user.phone = enteredPhone;
             user.step = "LOCATION";
 
             await sock.sendMessage(sender, {
@@ -357,16 +404,27 @@ Choose Language / భాష ఎంచుకోండి / भाषा चुन
 
                 if (!existingVendor) {
                     const vendor = new Vendor({
+                        Business_Name: null,
                         Owner_name: user.name,
+                        Email_address: `${user.phone}@whatsapp.apnamestri.com`,
                         Phone_number: user.phone,
+                        Business_address: null,
                         Category: user.skillKey ? skillToCategory[user.skillKey] : user.skill,
+                        Sub_Category: [],
+                        role: "Technical",
+                        Tax_ID: null,
+                        ID_Type: null,
+                        Password: user.password,
+                        ProductUrls: [],
+                        Profile_Image: "",
+                        Account_Number: null,
+                        IFSC_Code: null,
                         Charge_Per_Hour_or_Day: user.dailyWage,
                         Charge_Type: "Daily",
                         Latitude: user.latitude,
                         Longitude: user.longitude,
-                        role: "Technical",
-                        Email_address: `${user.phone}@whatsapp.apnamestri.com`,
-                        Password: user.password,
+                        Verified: false,
+                        description: null
                     });
 
                     await vendor.save();
