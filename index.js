@@ -14,6 +14,22 @@ function generatePassword() {
     return crypto.randomBytes(4).toString("hex").toUpperCase();
 }
 
+// Generate a unique email based on user's name
+async function generateUniqueEmail(name) {
+    const clean = name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    let email = `${clean}@apnamestri.com`;
+    let count = 1;
+    while (true) {
+        const existing = await Vendor.findOne({ Email_address: email });
+        if (!existing) {
+            break;
+        }
+        email = `${clean}${count}@apnamestri.com`;
+        count++;
+    }
+    return email;
+}
+
 const users = {};
 
 // ==========================
@@ -100,6 +116,7 @@ WhatsApp ➜ Attach ➜ Location ➜ Send Current Location`,
 
 Name: ${user.name}
 Phone: ${user.phone}
+Email: ${user.email}
 Skill: ${user.skill}
 Daily Wage: ${user.dailyWage}
 
@@ -189,6 +206,7 @@ WhatsApp ➜ Attach ➜ Location ➜ Send Current Location`,
 
 పేరు: ${user.name}
 ఫోన్: ${user.phone}
+ఈమెయిల్: ${user.email}
 నైపుణ్యం: ${user.skill}
 రోజువారీ వేతనం: ${user.dailyWage}
 
@@ -278,6 +296,7 @@ WhatsApp ➜ Attach ➜ Location ➜ Send Current Location`,
 
 नाम: ${user.name}
 फोन: ${user.phone}
+ईमेल: ${user.email}
 कौशल: ${user.skill}
 दैनिक मजदूरी: ${user.dailyWage}
 
@@ -575,14 +594,17 @@ Choose Language / భాష ఎంచుకోండి / भाषा चुन
                 const existingVendor = await Vendor.findOne({ Phone_number: user.phone });
 
                 if (!existingVendor) {
+                    // Generate unique email based on user's name
+                    user.email = await generateUniqueEmail(user.name);
+
                     const vendor = new Vendor({
                         Business_Name: null,
                         Owner_name: user.name,
-                        Email_address: `${user.phone}@whatsapp.apnamestri.com`,
+                        Email_address: user.email,
                         Phone_number: user.phone,
                         Business_address: null,
-                        Category: categoryName,
-                        Sub_Category: [],
+                        Category: user.category,
+                        Sub_Category: [categoryName],
                         role: "Technical",
                         Tax_ID: null,
                         ID_Type: null,
