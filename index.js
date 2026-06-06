@@ -23,19 +23,66 @@ const translations = {
     English: {
         selectLanguage: "Please select 1, 2 or 3",
         enterName: "Enter your full name:",
-        chooseSkill: `Choose Skill
+        chooseCategory: `Select Category:
+1. Technical
+2. Non-Technical`,
+        invalidCategory: "❌ Please choose 1 or 2",
+        chooseTechnicalSkill: `Choose Technical Skill:
 
-1. Electrician
-2. Plumber
-3. Painter
-4. Mason`,
-        skills: {
-            "1": "Electrician",
-            "2": "Plumber",
-            "3": "Painter",
-            "4": "Mason",
+1. Architects
+2. Civil Engineer
+3. Site Supervisor
+4. Survey Engineer
+5. MEP Consultant
+6. Structural Engineer
+7. Project Manager
+8. HVAC Engineer
+9. Safety Engineer
+10. Contractor
+11. Interior Designer
+12. WaterProofing Consultant
+13. Acoustic Consultants`,
+        chooseNonTechnicalSkill: `Choose Non-Technical Skill:
+
+1. EarthWork Labour
+2. Civil Mason
+3. Plumber
+4. Electrician
+5. Painter
+6. Carpenter
+7. False Ceiling Worker
+8. Fabrication
+9. Lift Technician
+10. Dismantaling Expert`,
+        technicalSkills: {
+            "1": "Architects",
+            "2": "Civil Engineer",
+            "3": "Site Supervisor",
+            "4": "Survey Engineer",
+            "5": "MEP Consultant",
+            "6": "Structural Engineer",
+            "7": "Project Manager",
+            "8": "HVAC Engineer",
+            "9": "Safety Engineer",
+            "10": "Contractor",
+            "11": "Interior Designer",
+            "12": "WaterProofing Consultant",
+            "13": "Acoustic Consultants",
         },
-        invalidSkill: "Choose 1 to 4",
+        nonTechnicalSkills: {
+            "1": "EarthWork Labour",
+            "2": "Civil Mason",
+            "3": "Plumber",
+            "4": "Electrician",
+            "5": "Painter",
+            "6": "Carpenter",
+            "7": "False Ceiling Worker",
+            "8": "Fabrication",
+            "9": "Lift Technician",
+            "10": "Dismantaling Expert",
+        },
+        invalidTechnicalSkill: "❌ Please choose a number from 1 to 13.",
+        invalidNonTechnicalSkill: "❌ Please choose a number from 1 to 10.",
         selectWage: `Select Daily Wage
 
 1. ₹500-700
@@ -65,19 +112,66 @@ Thank you for joining Apna Mestri 👷`,
     Telugu: {
         selectLanguage: "దయచేసి 1, 2 లేదా 3 ఎంచుకోండి",
         enterName: "మీ పూర్తి పేరు నమోదు చేయండి:",
-        chooseSkill: `నైపుణ్యాన్ని ఎంచుకోండి
+        chooseCategory: `వర్గాన్ని ఎంచుకోండి:
+1. Technical (టెక్నికల్)
+2. Non-Technical (నాన్-టెక్నికల్)`,
+        invalidCategory: "❌ దయచేసి 1 లేదా 2 ఎంచుకోండి",
+        chooseTechnicalSkill: `టెక్నికల్ స్కిల్ ఎంచుకోండి:
 
-1. ఎలక్ట్రీషియన్
-2. ప్లంబర్
-3. పెయింటర్
-4. మేసన్`,
-        skills: {
-            "1": "ఎలక్ట్రీషియన్",
-            "2": "ప్లంబర్",
-            "3": "పెయింటర్",
-            "4": "మేసన్",
+1. Architects (ఆర్కిటెక్ట్స్)
+2. Civil Engineer (సివిల్ ఇంజనీర్)
+3. Site Supervisor (సైట్ సూపర్వైజర్)
+4. Survey Engineer (సర్వే ఇంజనీర్)
+5. MEP Consultant (MEP కన్సల్టెంట్)
+6. Structural Engineer (స్ట్రక్చరల్ ఇంజనీర్)
+7. Project Manager (ప్రాజెక్ట్ మేనేజర్)
+8. HVAC Engineer (HVAC ఇంజనీర్)
+9. Safety Engineer (సేఫ్టీ ఇంజనీర్)
+10. Contractor (కాంట్రాక్టర్)
+11. Interior Designer (ఇంటీరియర్ డిజైనర్)
+12. WaterProofing Consultant (వాటర్‌ప్రూఫింగ్ కన్సల్టెంట్)
+13. Acoustic Consultants (అకౌస్టిక్ కన్సల్టెంట్స్)`,
+        chooseNonTechnicalSkill: `నాన్-టెక్నికల్ స్కిల్ ఎంచుకోండి:
+
+1. EarthWork Labour (మట్టి పని కూలీ)
+2. Civil Mason (తాపీ మేస్త్రీ)
+3. Plumber (ప్లంబర్)
+4. Electrician (ఎలక్ట్రీషియన్)
+5. Painter (పెయింటర్)
+6. Carpenter (కార్పెంటర్)
+7. False Ceiling Worker (ఫాల్స్ సీలింగ్ వర్కర్)
+8. Fabrication (ఫాబ్రికేషన్)
+9. Lift Technician (లిఫ్ట్ టెక్నీషియన్)
+10. Dismantaling Expert (భవనాలు కూల్చే నిపుణుడు)`,
+        technicalSkills: {
+            "1": "Architects (ఆర్కిటెక్ట్స్)",
+            "2": "Civil Engineer (సివిల్ ఇంజనీర్)",
+            "3": "Site Supervisor (సైట్ సూపర్వైజర్)",
+            "4": "Survey Engineer (సర్వే ఇంజనీర్)",
+            "5": "MEP Consultant (MEP కన్సల్టెంట్)",
+            "6": "Structural Engineer (స్ట్రక్చరల్ ఇంజనీర్)",
+            "7": "Project Manager (ప్రాజెక్ట్ మేనేజర్)",
+            "8": "HVAC Engineer (HVAC ఇంజనీర్)",
+            "9": "Safety Engineer (సేఫ్టీ ఇంజనీర్)",
+            "10": "Contractor (కాంట్రాక్టర్)",
+            "11": "Interior Designer (ఇంటీరియర్ డిజైనర్)",
+            "12": "WaterProofing Consultant (వాటర్‌ప్రూఫింగ్ కన్సల్టెంట్)",
+            "13": "Acoustic Consultants (అకౌస్టిక్ కన్సల్టెంట్స్)",
         },
-        invalidSkill: "1 నుండి 4 ఎంచుకోండి",
+        nonTechnicalSkills: {
+            "1": "EarthWork Labour (మట్టి పని కూలీ)",
+            "2": "Civil Mason (తాపీ మేస్త్రీ)",
+            "3": "Plumber (ప్లంబర్)",
+            "4": "Electrician (ఎలక్ట్రీషియన్)",
+            "5": "Painter (పెయింటర్)",
+            "6": "Carpenter (కార్పెంటర్)",
+            "7": "False Ceiling Worker (ఫాల్స్ సీలింగ్ వర్కర్)",
+            "8": "Fabrication (ఫాబ్రికేషన్)",
+            "9": "Lift Technician (లిఫ్ట్ టెక్నీషియన్)",
+            "10": "Dismantaling Expert (భవనాలు కూల్చే నిపుణుడు)",
+        },
+        invalidTechnicalSkill: "❌ దయచేసి 1 నుండి 13 వరకు సంఖ్యను ఎంచుకోండి.",
+        invalidNonTechnicalSkill: "❌ దయచేసి 1 నుండి 10 వరకు సంఖ్యను ఎంచుకోండి.",
         selectWage: `రోజువారీ వేతనం ఎంచుకోండి
 
 1. ₹500-700
@@ -107,19 +201,66 @@ Apna Mestri లో చేరినందుకు ధన్యవాదాలు
     Hindi: {
         selectLanguage: "कृपया 1, 2 या 3 चुनें",
         enterName: "अपना पूरा नाम दर्ज करें:",
-        chooseSkill: `कौशल चुनें
+        chooseCategory: `श्रेणी चुनें:
+1. Technical (तकनीकी)
+2. Non-Technical (गैर-तकनीकी)`,
+        invalidCategory: "❌ कृपया 1 या 2 चुनें",
+        chooseTechnicalSkill: `तकनीकी कौशल चुनें:
 
-1. इलेक्ट्रीशियन
-2. प्लंबर
-3. पेंटर
-4. मिस्त्री (राजमिस्त्री)`,
-        skills: {
-            "1": "इलेक्ट्रीशियन",
-            "2": "प्लंबर",
-            "3": "पेंटर",
-            "4": "मिस्त्री (राजमिस्त्री)",
+1. Architects (आर्किटेक्ट्स)
+2. Civil Engineer (सिविल इंजीनियर)
+3. Site Supervisor (साइट सुपरवाइजर)
+4. Survey Engineer (सर्वे इंजीनियर)
+5. MEP Consultant (एमईपी सलाहकार)
+6. Structural Engineer (स्ट्रक्चरल इंजीनियर)
+7. Project Manager (प्रोजेक्ट मैनेजर)
+8. HVAC Engineer (एचवीएसी इंजीनियर)
+9. Safety Engineer (सेफ्टी इंजीनियर)
+10. Contractor (ठेकेदार)
+11. Interior Designer (इंटीरियर डिजाइनर)
+12. WaterProofing Consultant (वॉटरप्रूफिंग सलाहकार)
+13. Acoustic Consultants (ध्वनि सलाहकार)`,
+        chooseNonTechnicalSkill: `गैर-तकनीकी कौशल चुनें:
+
+1. EarthWork Labour (मिट्टी काम मजदूर)
+2. Civil Mason (राजमिस्त्री)
+3. Plumber (प्लंबर)
+4. Electrician (इलेक्ट्रीशियन)
+5. Painter (पेंटर)
+6. Carpenter (बढ़ई)
+7. False Ceiling Worker (फॉल्स सीलिंग कारीगर)
+8. Fabrication (फैब्रिकेशन कारीगर)
+9. Lift Technician (लिफ्ट तकनीशियन)
+10. Dismantaling Expert (डिसमेंटलिंग एक्सपर्ट)`,
+        technicalSkills: {
+            "1": "Architects (आर्किटेक्ट्स)",
+            "2": "Civil Engineer (सिविल इंजीनियर)",
+            "3": "Site Supervisor (साइट सुपरवाइजर)",
+            "4": "Survey Engineer (सर्वे इंजीनियर)",
+            "5": "MEP Consultant (एमईपी सलाहकार)",
+            "6": "Structural Engineer (स्ट्रक्चरल इंजीनियर)",
+            "7": "Project Manager (प्रोजेक्ट मैनेजर)",
+            "8": "HVAC Engineer (एचवीएसी इंजीनियर)",
+            "9": "Safety Engineer (सेफ्टी इंजीनियर)",
+            "10": "Contractor (ठेकेदार)",
+            "11": "Interior Designer (इंटीरियर डिजाइनर)",
+            "12": "WaterProofing Consultant (वॉटरप्रूफिंग सलाहकार)",
+            "13": "Acoustic Consultants (ध्वनि सलाहकार)",
         },
-        invalidSkill: "1 से 4 में से चुनें",
+        nonTechnicalSkills: {
+            "1": "EarthWork Labour (मिट्टी काम मजदूर)",
+            "2": "Civil Mason (राजमिस्त्री)",
+            "3": "Plumber (प्लंबर)",
+            "4": "Electrician (इलेक्ट्रीशियन)",
+            "5": "Painter (पेंटर)",
+            "6": "Carpenter (बढ़ई)",
+            "7": "False Ceiling Worker (फॉल्स सीलिंग कारीगर)",
+            "8": "Fabrication (फैब्रिकेशन कारीगर)",
+            "9": "Lift Technician (लिफ्ट तकनीशियन)",
+            "10": "Dismantaling Expert (डिसमेंटलिंग एक्सपर्ट)",
+        },
+        invalidTechnicalSkill: "❌ कृपया 1 से 13 के बीच की संख्या चुनें।",
+        invalidNonTechnicalSkill: "❌ कृपया 1 से 10 के बीच की संख्या चुनें।",
         selectWage: `दैनिक मजदूरी चुनें
 
 1. ₹500-700
@@ -259,10 +400,38 @@ Choose Language / భాష ఎంచుకోండి / भाषा चुन
         // ==========================
         if (user.step === "NAME") {
             user.name = text;
+            user.step = "CATEGORY";
+
+            await sock.sendMessage(sender, {
+                text: t(user.language, "chooseCategory"),
+            });
+
+            return;
+        }
+
+        // ==========================
+        // CATEGORY
+        // ==========================
+        if (user.step === "CATEGORY") {
+            const categories = {
+                "1": "Technical",
+                "2": "Non-Technical",
+            };
+
+            if (!categories[text]) {
+                await sock.sendMessage(sender, {
+                    text: t(user.language, "invalidCategory"),
+                });
+                return;
+            }
+
+            user.category = categories[text];
             user.step = "SKILL";
 
             await sock.sendMessage(sender, {
-                text: t(user.language, "chooseSkill"),
+                text: user.category === "Technical"
+                    ? t(user.language, "chooseTechnicalSkill")
+                    : t(user.language, "chooseNonTechnicalSkill"),
             });
 
             return;
@@ -272,18 +441,22 @@ Choose Language / భాష ఎంచుకోండి / भाषा चुन
         // SKILL
         // ==========================
         if (user.step === "SKILL") {
-            const skillKeys = { "1": true, "2": true, "3": true, "4": true };
+            const isTechnical = user.category === "Technical";
+            const skillList = isTechnical
+                ? t(user.language, "technicalSkills")
+                : t(user.language, "nonTechnicalSkills");
 
-            if (!skillKeys[text]) {
+            if (!skillList[text]) {
                 await sock.sendMessage(sender, {
-                    text: t(user.language, "invalidSkill"),
+                    text: isTechnical
+                        ? t(user.language, "invalidTechnicalSkill")
+                        : t(user.language, "invalidNonTechnicalSkill"),
                 });
                 return;
             }
 
-            const localizedSkills = t(user.language, "skills");
             user.skillKey = text;
-            user.skill = localizedSkills[text];
+            user.skill = skillList[text];
             user.step = "WAGE";
 
             await sock.sendMessage(sender, {
@@ -388,12 +561,11 @@ Choose Language / భాష ఎంచుకోండి / भाषा चुन
             user.step = "COMPLETE";
 
             // Map bot skill to English category for DB storage
-            const skillToCategory = {
-                "1": "Electrician",
-                "2": "Plumber",
-                "3": "Painter",
-                "4": "Mason",
-            };
+            const englishSkills = user.category === "Technical"
+                ? translations["English"].technicalSkills
+                : translations["English"].nonTechnicalSkills;
+
+            const categoryName = englishSkills[user.skillKey] || user.skill;
 
             // Generate random security password
             user.password = generatePassword();
@@ -409,7 +581,7 @@ Choose Language / భాష ఎంచుకోండి / भाषा चुन
                         Email_address: `${user.phone}@whatsapp.apnamestri.com`,
                         Phone_number: user.phone,
                         Business_address: null,
-                        Category: user.skillKey ? skillToCategory[user.skillKey] : user.skill,
+                        Category: categoryName,
                         Sub_Category: [],
                         role: "Technical",
                         Tax_ID: null,
