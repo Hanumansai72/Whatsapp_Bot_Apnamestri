@@ -653,7 +653,18 @@ Choose Language / భాష ఎంచుకోండి / भाषा चुन
     });
 }
 
+const http = require("http");
+
 // Connect to MongoDB first, then start the bot
 connectDB().then(() => {
     startBot();
+
+    // Simple health check server for hosting platforms like Render/Railway
+    const PORT = process.env.PORT || 3000;
+    http.createServer((req, res) => {
+        res.writeHead(200, { "Content-Type": "text/plain" });
+        res.end("Apna Mestri WhatsApp Bot is running!\n");
+    }).listen(PORT, () => {
+        console.log(`Server listening on port ${PORT}`);
+    });
 });
