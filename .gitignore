@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# WhatsApp Bot Session/Credentials
+auth/
+
+# Environment Variables / Secrets
+.env
+.env.*
+!.env.example
+
+# IDEs & System files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log

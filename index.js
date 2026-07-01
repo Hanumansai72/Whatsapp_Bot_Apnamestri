@@ -654,19 +654,40 @@ Choose Language / భాష ఎంచుకోండి / भाषा चुन
         }
     });
 
-    sock.ev.on("connection.update", ({ connection, lastDisconnect, qr }) => {
+    sock.ev.on("connection.update", async ({ connection, lastDisconnect, qr }) => {
         // Display QR code in terminal for scanning
         if (qr) {
             console.log("\n📱 Scan this QR code with WhatsApp:\n");
             qrcode.generate(qr, { small: true });
         }
 
-        if (
-            connection === "close" &&
-            lastDisconnect?.error?.output?.statusCode !==
-            DisconnectReason.loggedOut
-        ) {
-            startBot();
+        if (connection === "close") {
+            const statusCode = lastDisconnect?.error?.output?.statusCode;
+            const errorReason = lastDisconnect?.error?.message || lastDisconnect?.error || "Unknown error";
+            const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+
+            console.log(`❌ WhatsApp Connection Closed. Reason: ${errorReason}. Status Code: ${statusCode}. Reconnecting: ${shouldReconnect}`);
+
+            if (shouldReconnect) {
+                console.log("🔄 Reconnecting in 5 seconds...");
+                setTimeout(() => {
+                    startBot();
+                }, 5000);
+            } else {
+                console.log("⚠️ Logged out from WhatsApp. Clearing session and restarting to scan new QR code...");
+                const fs = require("fs");
+                try {
+                    fs.rmSync("./auth", { recursive: true, force: true });
+                    console.log("✅ Session credentials cleared successfully.");
+                } catch (err) {
+                    console.error("❌ Failed to clear credentials directory:", err.message);
+                }
+
+                console.log("🔄 Starting fresh bot instance in 3 seconds...");
+                setTimeout(() => {
+                    startBot();
+                }, 3000);
+            }
         }
 
         if (connection === "open") {
@@ -682,7 +703,7 @@ connectDB().then(() => {
     startBot();
 
     // Simple health check server for hosting platforms like Render/Railway
-    const PORT = process.env.PORT || 3000;
+    const PORT = process.env.PORT || 6000;
     http.createServer((req, res) => {
         res.writeHead(200, { "Content-Type": "text/plain" });
         res.end("Apna Mestri WhatsApp Bot is running!\n");
