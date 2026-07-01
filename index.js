@@ -31,6 +31,8 @@ async function generateUniqueEmail(name) {
 }
 
 const users = {};
+let latestQR = null;
+let isBotConnected = false;
 
 // ==========================
 // TRANSLATIONS
@@ -707,11 +709,13 @@ Choose Language / భాష ఎంచుకోండి / भाषा चुन
     sock.ev.on("connection.update", async ({ connection, lastDisconnect, qr }) => {
         // Display QR code in terminal for scanning
         if (qr) {
+            latestQR = qr;
             console.log("\n📱 Scan this QR code with WhatsApp:\n");
             qrcode.generate(qr, { small: true });
         }
 
         if (connection === "close") {
+            isBotConnected = false;
             const statusCode = lastDisconnect?.error?.output?.statusCode;
             const errorReason = lastDisconnect?.error?.message || lastDisconnect?.error || "Unknown error";
             const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
@@ -741,6 +745,8 @@ Choose Language / భాష ఎంచుకోండి / भाषा चुन
         }
 
         if (connection === "open") {
+            isBotConnected = true;
+            latestQR = null;
             console.log("✅ WhatsApp Bot Connected");
         }
     });
@@ -755,8 +761,159 @@ connectDB().then(() => {
     // Simple health check server for hosting platforms like Render/Railway
     const PORT = process.env.PORT || 6000;
     http.createServer((req, res) => {
-        res.writeHead(200, { "Content-Type": "text/plain" });
-        res.end("Apna Mestri WhatsApp Bot is running!\n");
+        res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+
+        if (isBotConnected) {
+            res.end(`<!DOCTYPE html>
+<html>
+<head>
+    <title>Apna Mestri WhatsApp Bot - Connected</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #e8f5e9;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            border-top: 6px solid #2e7d32;
+            max-width: 400px;
+            width: 90%;
+        }
+        h1 { color: #2e7d32; margin-top: 0; font-size: 24px; }
+        p { color: #555; font-size: 16px; line-height: 1.5; }
+        .icon { font-size: 48px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">✅</div>
+        <h1>Bot is Connected!</h1>
+        <p>Apna Mestri WhatsApp Bot is active and running successfully.</p>
+    </div>
+</body>
+</html>`);
+        } else if (latestQR) {
+            res.end(`<!DOCTYPE html>
+<html>
+<head>
+    <title>Apna Mestri WhatsApp Bot - Scan QR</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        h1 { color: #075e54; margin-top: 0; font-size: 24px; }
+        p { color: #555; font-size: 15px; line-height: 1.5; }
+        .qr-box {
+            margin: 20px 0;
+            padding: 10px;
+            background: white;
+            display: inline-block;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        img {
+            display: block;
+            width: 250px;
+            height: 250px;
+        }
+        .footer { font-size: 12px; color: #888; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Scan QR Code</h1>
+        <p>Open WhatsApp on your phone, tap <b>Linked Devices</b>, and scan this code to connect the bot:</p>
+        <div class="qr-box">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(latestQR)}" alt="WhatsApp QR Code" />
+        </div>
+        <p class="footer">Awaiting scan. This page auto-refreshes every 10 seconds.</p>
+    </div>
+    <script>
+        setTimeout(() => { window.location.reload(); }, 10000);
+    </script>
+</body>
+</html>`);
+        } else {
+            res.end(`<!DOCTYPE html>
+<html>
+<head>
+    <title>Apna Mestri WhatsApp Bot - Starting</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #fafafa;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        h1 { color: #f57c00; margin-top: 0; font-size: 24px; }
+        p { color: #555; font-size: 15px; line-height: 1.5; }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #f57c00;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="spinner"></div>
+        <h1>Starting Bot...</h1>
+        <p>Connecting to WhatsApp servers. If this is a new session, a QR code will appear here in a few seconds.</p>
+    </div>
+    <script>
+        setTimeout(() => { window.location.reload(); }, 5000);
+    </script>
+</body>
+</html>`);
+        }
     }).listen(PORT, () => {
         console.log(`Server listening on port ${PORT}`);
     });
