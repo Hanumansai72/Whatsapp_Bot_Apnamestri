@@ -334,44 +334,72 @@ async function startBot() {
             msg.message.extendedTextMessage?.text ||
             "";
 
-        // New User — check database first to see if they are already registered
-        if (!users[sender]) {
-            const jidNumber = sender.split("@")[0];
-            const cleanedJidPhone = jidNumber.length === 12 && jidNumber.startsWith("91")
-                ? jidNumber.slice(2)
-                : jidNumber;
-
-            try {
-                const existing = await Vendor.findOne({
-                    $or: [
-                        { Phone_number: cleanedJidPhone },
-                        { Phone_number: jidNumber }
-                    ]
-                });
-
-                if (existing) {
-                    users[sender] = {
-                        step: "COMPLETE",
-                        phone: existing.Phone_number,
-                        name: existing.Owner_name,
-                        language: "English"
-                    };
-
-                    await sock.sendMessage(sender, {
-                        text: "You are already registered ✅\nమీరు ఇప్పటికే రిజిస్టర్ అయ్యారు ✅\nआप पहले से रजिस्टर्ड हैं ✅",
-                    });
-                    return;
-                }
-            } catch (dbErr) {
-                console.error("❌ Error checking existing user on greeting:", dbErr.message);
+        // Check if user is in normal chat mode
+        if (users[sender] && users[sender].step === "NORMAL_CHAT") {
+            if (text.trim().toLowerCase() === "#bot") {
+                delete users[sender];
+            } else {
+                return; // Do not respond, treat as normal WhatsApp chat
             }
+        }
 
+        // New User — Ask for bot vs normal chat preference
+        if (!users[sender]) {
             users[sender] = {
-                step: "LANGUAGE",
+                step: "CHOOSE_MODE",
             };
 
             await sock.sendMessage(sender, {
-                text: `👋 Welcome to Apna Mestri
+                text: `Choose Chat Mode / చాట్ మోడ్ ఎంచుకోండి / चैट मोड चुनें:
+
+1. Chat with Bot (Apna Mestri Bot) / బాట్‌తో చాట్ చేయండి / बॉट के साथ चैट करें
+2. Normal Chat (Human) / సాధారణ చాట్ / सामान्य चैट
+
+Reply with 1 or 2 / 1 లేదా 2 తో రిప్లై ఇవ్వండి / 1 या 2 के साथ उत्तर दें`,
+            });
+
+            return;
+        }
+
+        const user = users[sender];
+
+        // Handle Chat Mode Selection
+        if (user.step === "CHOOSE_MODE") {
+            const cleanText = text.trim();
+            if (cleanText === "1") {
+                // Check if they are already registered in the DB
+                const jidNumber = sender.split("@")[0];
+                const cleanedJidPhone = jidNumber.length === 12 && jidNumber.startsWith("91")
+                    ? jidNumber.slice(2)
+                    : jidNumber;
+
+                try {
+                    const existing = await Vendor.findOne({
+                        $or: [
+                            { Phone_number: cleanedJidPhone },
+                            { Phone_number: jidNumber }
+                        ]
+                    });
+
+                    if (existing) {
+                        user.step = "COMPLETE";
+                        user.phone = existing.Phone_number;
+                        user.name = existing.Owner_name;
+                        user.language = "English";
+
+                        await sock.sendMessage(sender, {
+                            text: "You are already registered ✅\nమీరు ఇప్పటికే రిజిస్టర్ అయ్యారు ✅\nआप पहले से रजिस्टर्ड हैं ✅",
+                        });
+                        return;
+                    }
+                } catch (dbErr) {
+                    console.error("❌ Error checking existing user on greeting:", dbErr.message);
+                }
+
+                // Not registered, proceed to Language selection
+                user.step = "LANGUAGE";
+                await sock.sendMessage(sender, {
+                    text: `👋 Welcome to Apna Mestri
 👋 Apna Mestri కి స్వాగతం
 👋 Apna Mestri में आपका स्वागत है
 
@@ -380,8 +408,24 @@ Choose Language / భాష ఎంచుకోండి / भाषा चुन
 1. English
 2. తెలుగు
 3. हिन्दी`,
-            });
+                });
+            } else if (cleanText === "2") {
+                user.step = "NORMAL_CHAT";
+                await sock.sendMessage(sender, {
+                    text: `🔌 Normal chat mode activated. The bot is now disabled.
+(If you want to use the bot again, reply with #bot)
 
+🔌 సాధారణ చాట్ మోడ్ సక్రియం చేయబడింది. బాట్ ఇప్పుడు నిలిపివేయబడింది.
+(మీరు మళ్లీ బాట్ ఉపయోగించాలనుకుంటే, #bot అని రిప్లై ఇవ్వండి)
+
+🔌 सामान्य चैट मोड सक्रिय हो गया है। बॉट अब बंद है।
+(यदि आप फिर से बॉट का उपयोग करना चाहते हैं, तो #bot का उत्तर दें)`,
+                });
+            } else {
+                await sock.sendMessage(sender, {
+                    text: "❌ Please reply with 1 or 2\n❌ దయచేసి 1 లేదా 2 తో రిప్లై ఇవ్వండి\n❌ कृपया 1 या 2 के साथ उत्तर दें",
+                });
+            }
             return;
         }
 
