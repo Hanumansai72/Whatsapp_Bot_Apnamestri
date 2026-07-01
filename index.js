@@ -429,7 +429,6 @@ Choose Language / భాష ఎంచుకోండి / भाषा चुन
             return;
         }
 
-        const user = users[sender];
 
         // ==========================
         // LANGUAGE
