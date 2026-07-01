@@ -334,6 +334,12 @@ async function startBot() {
             msg.message.extendedTextMessage?.text ||
             "";
 
+        // Reset session if user types "exit" or "clear"
+        const cleanTextLower = text.trim().toLowerCase();
+        if (cleanTextLower === "exit" || cleanTextLower === "clear") {
+            delete users[sender];
+        }
+
         // Check if user is in normal chat mode
         if (users[sender] && users[sender].step === "NORMAL_CHAT") {
             if (text.trim().toLowerCase() === "#bot") {
