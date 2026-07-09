@@ -71,7 +71,13 @@ const translations = {
 7. False Ceiling Worker
 8. Fabrication
 9. Lift Technician
-10. Dismantaling Expert`,
+10. Dismantaling Expert
+11. Flooring work
+12. Granite work
+13. Form work/centering
+14. Civil helper
+15. water Proofing
+16. Termite control`,
         technicalSkills: {
             "1": "Architects",
             "2": "Civil Engineer",
@@ -107,7 +113,7 @@ const translations = {
 
         },
         invalidTechnicalSkill: "❌ Please choose a number from 1 to 13.",
-        invalidNonTechnicalSkill: "❌ Please choose a number from 1 to 10.",
+        invalidNonTechnicalSkill: "❌ Please choose a number from 1 to 16.",
         selectWage: `Select Daily Wage
 
 1. ₹500-700
@@ -168,7 +174,13 @@ Thank you for joining Apna Mestri 👷`,
 7. False Ceiling Worker (ఫాల్స్ సీలింగ్ వర్కర్)
 8. Fabrication (ఫాబ్రికేషన్)
 9. Lift Technician (లిఫ్ట్ టెక్నీషియన్)
-10. Dismantaling Expert (భవనాలు కూల్చే నిపుణుడు)`,
+10. Dismantaling Expert (భవనాలు కూల్చే నిపుణుడు)
+11. Flooring work (ఫ్లోరింగ్ వర్క్)
+12. Granite work (గ్రానైట్ వర్క్)
+13. Form work/centering (ఫార్మ్ వర్క్/సెంటరింగ్)
+14. Civil helper (సివిల్ హెల్పర్)
+15. water Proofing (వాటర్ ప్రూఫింగ్)
+16. Termite control (టర్మైట్ కంట్రోల్)`,
         technicalSkills: {
             "1": "Architects (ఆర్కిటెక్ట్స్)",
             "2": "Civil Engineer (సివిల్ ఇంజనీర్)",
@@ -195,9 +207,15 @@ Thank you for joining Apna Mestri 👷`,
             "8": "Fabrication (ఫాబ్రికేషన్)",
             "9": "Lift Technician (లిఫ్ట్ టెక్నీషియన్)",
             "10": "Dismantaling Expert (భవనాలు కూల్చే నిపుణుడు)",
+            "11": "Flooring work (ఫ్లోరింగ్ వర్క్)",
+            "12": "Granite work (గ్రానైట్ వర్క్)",
+            "13": "Form work/centering (ఫార్మ్ వర్క్/సెంటరింగ్)",
+            "14": "Civil helper (సివిల్ హెల్పర్)",
+            "15": "water Proofing (వాటర్ ప్రూఫింగ్)",
+            "16": "Termite control (టర్మైట్ కంట్రోల్)",
         },
         invalidTechnicalSkill: "❌ దయచేసి 1 నుండి 13 వరకు సంఖ్యను ఎంచుకోండి.",
-        invalidNonTechnicalSkill: "❌ దయచేసి 1 నుండి 10 వరకు సంఖ్యను ఎంచుకోండి.",
+        invalidNonTechnicalSkill: "❌ దయచేసి 1 నుండి 16 వరకు సంఖ్యను ఎంచుకోండి.",
         selectWage: `రోజువారీ వేతనం ఎంచుకోండి
 
 1. ₹500-700
@@ -258,7 +276,13 @@ Apna Mestri లో చేరినందుకు ధన్యవాదాలు
 7. False Ceiling Worker (फॉल्स सीलिंग कारीगर)
 8. Fabrication (फैब्रिकेशन कारीगर)
 9. Lift Technician (लिफ्ट तकनीशियन)
-10. Dismantaling Expert (डिसमेंटलिंग एक्सपर्ट)`,
+10. Dismantaling Expert (डिसमेंटलिंग एक्सपर्ट)
+11. Flooring work (फ्लोरिंग वर्क)
+12. Granite work (ग्रेनाइट वर्क)
+13. Form work/centering (फॉर्म वर्क/सेंटरिंग)
+14. Civil helper (सिविल हेल्पर)
+15. water Proofing (वॉटरप्रूफिंग)
+16. Termite control (दीमक नियंत्रण)`,
         technicalSkills: {
             "1": "Architects (आर्किटेक्ट्स)",
             "2": "Civil Engineer (सिविल इंजीनियर)",
@@ -285,9 +309,15 @@ Apna Mestri లో చేరినందుకు ధన్యవాదాలు
             "8": "Fabrication (फैब्रिकेशन कारीगर)",
             "9": "Lift Technician (लिफ्ट तकनीशियन)",
             "10": "Dismantaling Expert (डिसमेंटलिंग एक्सपर्ट)",
+            "11": "Flooring work (फ्लोरिंग वर्क)",
+            "12": "Granite work (ग्रेनाइट वर्क)",
+            "13": "Form work/centering (फॉर्म वर्क/सेंटरिंग)",
+            "14": "Civil helper (सिविल हेल्पर)",
+            "15": "water Proofing (वॉटरप्रूफिंग)",
+            "16": "Termite control (दीमक नियंत्रण)",
         },
         invalidTechnicalSkill: "❌ कृपया 1 से 13 के बीच की संख्या चुनें।",
-        invalidNonTechnicalSkill: "❌ कृपया 1 से 10 के बीच की संख्या चुनें।",
+        invalidNonTechnicalSkill: "❌ कृपया 1 से 16 के बीच की संख्या चुनें।",
         selectWage: `दैनिक मजदूरी चुनें
 
 1. ₹500-700
