@@ -98,6 +98,13 @@ const translations = {
             "8": "Fabrication",
             "9": "Lift Technician",
             "10": "Dismantaling Expert",
+            "11": "Flooring work",
+            "12": "Granite work",
+            "13": "Form work/centering",
+            "14": "Civil helper",
+            "15": "water Proofing",
+            "16": "Termite control",
+
         },
         invalidTechnicalSkill: "❌ Please choose a number from 1 to 13.",
         invalidNonTechnicalSkill: "❌ Please choose a number from 1 to 10.",
