@@ -33,6 +33,19 @@ async function generateUniqueEmail(name) {
 const users = {};
 let latestQR = null;
 let isBotConnected = false;
+let reconnectTimer = null;
+
+function scheduleReconnect(delayMs = 5000) {
+    if (reconnectTimer) return;
+
+    reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        startBot().catch((error) => {
+            console.error("❌ Failed to start WhatsApp connection:", error);
+            scheduleReconnect(10000);
+        });
+    }, delayMs);
+}
 
 // ==========================
 // TRANSLATIONS
@@ -357,7 +370,13 @@ async function startBot() {
 
     const sock = makeWASocket({
         auth: state,
-        printQRInTerminal: false // We use qrcode-terminal to print it manually
+        printQRInTerminal: false,
+        // Keep the client identity stable across reconnects on Render.
+        browser: ["Mac OS", "Chrome", "14.4.1"],
+        connectTimeoutMs: 60000,
+        defaultQueryTimeoutMs: 60000,
+        keepAliveIntervalMs: 25000,
+        markOnlineOnConnect: false,
     });
 
     // 1. Save credentials automatically
@@ -368,11 +387,14 @@ async function startBot() {
         const { connection, lastDisconnect, qr } = update;
         
         if (qr) {
+            latestQR = qr;
+            isBotConnected = false;
             qrcode.generate(qr, { small: true });
-            console.log("Scan the QR code above to connect.");
+            console.log("Scan the QR code above or open the Render health-check URL to connect.");
         }
 
         if (connection === "close") {
+            isBotConnected = false;
             const statusCode = lastDisconnect?.error?.output?.statusCode;
             const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
             
@@ -384,13 +406,15 @@ async function startBot() {
             
             // Auto-reconnect on crash or network loss
             if (shouldReconnect) {
-                startBot();
+                scheduleReconnect(5000);
             } else {
+                latestQR = null;
                 console.log("Logged out. Please delete the 'auth' folder and scan the QR code again.");
             }
         } else if (connection === "open") {
             console.log("✅ WhatsApp Bot Connected!");
             isBotConnected = true;
+            latestQR = null;
         }
     });
 
