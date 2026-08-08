@@ -358,6 +358,37 @@ async function startBot() {
     const sock = makeWASocket({
         auth: state,
     });
+         sock.ev.on("connection.update", (update) => {
+        const { connection, lastDisconnect, qr } = update;
+        
+        if (qr) {
+            qrcode.generate(qr, { small: true });
+            console.log("Scan the QR code above to connect.");
+        }
+
+        if (connection === "close") {
+            const statusCode = lastDisconnect?.error?.output?.statusCode;
+            const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+            
+            console.log(
+                "❌ WhatsApp Connection Closed. Reason:", 
+                lastDisconnect?.error?.message || statusCode, 
+                "| Reconnecting:", shouldReconnect
+            );
+            
+            // Reconnect if the user hasn't explicitly logged out from their phone
+            if (shouldReconnect) {
+                startBot();
+            } else {
+                console.log("Logged out. Please delete the 'auth' folder and scan the QR code again.");
+            }
+        } else if (connection === "open") {
+            console.log("✅ WhatsApp Bot Connected!");
+            isBotConnected = true;
+        }
+    });
+
+
 
     sock.ev.on("creds.update", saveCreds);
 
