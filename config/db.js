@@ -7,7 +7,7 @@ dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 const connectDB = async () => {
   try {
-    const mongoURI = "mongodb+srv://hanumansai72:PHxojTiAxGCBVXbJ@cluster0.lfuudui.mongodb.net/apana_mestri?retryWrites=true&w=majority&appName=Cluster0";
+    const mongoURI = "mongodb+srv://hanumansai72:QKCGGMavzjQmU1BU@cluster0.lfuudui.mongodb.net/apana_mestri?retryWrites=true&w=majority&appName=Cluster0";
 
     if (!mongoURI) {
       console.error('MongoDB URI is not defined in environment variables');
