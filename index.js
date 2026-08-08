@@ -1,11 +1,13 @@
 const {
     default: makeWASocket,
     useMultiFileAuthState,
+    fetchLatestBaileysVersion,
     DisconnectReason,
 } = require("@whiskeysockets/baileys");
 
 const crypto = require("crypto");
-    const qrcode = require("qrcode-terminal");
+const fs = require("fs");
+const qrcode = require("qrcode-terminal");
 const connectDB = require("./config/db");
 const Vendor = require("./models/Vendor");
 
@@ -367,6 +369,20 @@ function t(lang, key) {
 
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState("./auth");
+    let version;
+
+    try {
+        const latest = await fetchLatestBaileysVersion();
+        version = latest.version;
+        console.log(
+            `Using WhatsApp Web version ${version.join(".")} (${latest.isLatest ? "latest" : "fallback"})`
+        );
+    } catch (error) {
+        console.warn(
+            "⚠️ Could not fetch the latest WhatsApp Web version; using Baileys default:",
+            error?.message || error
+        );
+    }
 
     const sock = makeWASocket({
         auth: state,
@@ -377,6 +393,7 @@ async function startBot() {
         defaultQueryTimeoutMs: 60000,
         keepAliveIntervalMs: 25000,
         markOnlineOnConnect: false,
+        ...(version ? { version } : {}),
     });
 
     // 1. Save credentials automatically
@@ -390,7 +407,7 @@ async function startBot() {
             latestQR = qr;
             isBotConnected = false;
             qrcode.generate(qr, { small: true });
-            console.log("Scan the QR code above or open the Render health-check URL to connect.");
+            console.log("📱 New WhatsApp QR received. Scan it now or open the Render health-check URL.");
         }
 
         if (connection === "close") {
@@ -408,8 +425,17 @@ async function startBot() {
             if (shouldReconnect) {
                 scheduleReconnect(5000);
             } else {
+                // A 401/logged-out session cannot be repaired by reconnecting.
+                // Remove only this invalid auth state so the next start generates a fresh QR.
+                try {
+                    fs.rmSync("./auth", { recursive: true, force: true });
+                    console.log("🧹 Cleared the logged-out WhatsApp session.");
+                } catch (error) {
+                    console.error("❌ Could not clear the logged-out session:", error?.message || error);
+                }
                 latestQR = null;
-                console.log("Logged out. Please delete the 'auth' folder and scan the QR code again.");
+                console.log("🔄 Starting a fresh WhatsApp login in 3 seconds...");
+                scheduleReconnect(3000);
             }
         } else if (connection === "open") {
             console.log("✅ WhatsApp Bot Connected!");
