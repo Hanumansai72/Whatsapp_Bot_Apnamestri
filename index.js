@@ -1,10 +1,12 @@
 const {
     default: makeWASocket,
     useMultiFileAuthState,
+    fetchLatestBaileysVersion,
     DisconnectReason,
 } = require("@whiskeysockets/baileys");
 
 const crypto = require("crypto");
+const fs = require("fs");
 const qrcode = require("qrcode-terminal");
 const connectDB = require("./config/db");
 const Vendor = require("./models/Vendor");
@@ -33,6 +35,19 @@ async function generateUniqueEmail(name) {
 const users = {};
 let latestQR = null;
 let isBotConnected = false;
+let reconnectTimer = null;
+
+function scheduleReconnect(delayMs = 5000) {
+    if (reconnectTimer) return;
+
+    reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        startBot().catch((error) => {
+            console.error("❌ Failed to start WhatsApp connection:", error);
+            scheduleReconnect(10000);
+        });
+    }, delayMs);
+}
 
 // ==========================
 // TRANSLATIONS
@@ -354,35 +369,105 @@ function t(lang, key) {
 
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState("./auth");
+    let version;
+
+    try {
+        const latest = await fetchLatestBaileysVersion();
+        version = latest.version;
+        console.log(
+            `Using WhatsApp Web version ${version.join(".")} (${latest.isLatest ? "latest" : "fallback"})`
+        );
+    } catch (error) {
+        console.warn(
+            "⚠️ Could not fetch the latest WhatsApp Web version; using Baileys default:",
+            error?.message || error
+        );
+    }
 
     const sock = makeWASocket({
         auth: state,
+        printQRInTerminal: false,
+        // Keep the client identity stable across reconnects on Render.
+        browser: ["Mac OS", "Chrome", "14.4.1"],
+        connectTimeoutMs: 60000,
+        defaultQueryTimeoutMs: 60000,
+        keepAliveIntervalMs: 25000,
+        markOnlineOnConnect: false,
+        ...(version ? { version } : {}),
     });
 
+    // 1. Save credentials automatically
     sock.ev.on("creds.update", saveCreds);
 
+    // 2. ADDED: Connection Event Handling (Handles reconnects & QR generation)
+    sock.ev.on("connection.update", (update) => {
+        const { connection, lastDisconnect, qr } = update;
+        
+        if (qr) {
+            latestQR = qr;
+            isBotConnected = false;
+            qrcode.generate(qr, { small: true });
+            console.log("📱 New WhatsApp QR received. Scan it now or open the Render health-check URL.");
+        }
+
+        if (connection === "close") {
+            isBotConnected = false;
+            const statusCode = lastDisconnect?.error?.output?.statusCode;
+            const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+            
+            console.log(
+                "❌ WhatsApp Connection Closed. Reason:", 
+                lastDisconnect?.error?.message || statusCode, 
+                "| Reconnecting:", shouldReconnect
+            );
+            
+            // Auto-reconnect on crash or network loss
+            if (shouldReconnect) {
+                scheduleReconnect(5000);
+            } else {
+                // A 401/logged-out session cannot be repaired by reconnecting.
+                // Remove only this invalid auth state so the next start generates a fresh QR.
+                try {
+                    fs.rmSync("./auth", { recursive: true, force: true });
+                    console.log("🧹 Cleared the logged-out WhatsApp session.");
+                } catch (error) {
+                    console.error("❌ Could not clear the logged-out session:", error?.message || error);
+                }
+                latestQR = null;
+                console.log("🔄 Starting a fresh WhatsApp login in 3 seconds...");
+                scheduleReconnect(3000);
+            }
+        } else if (connection === "open") {
+            console.log("✅ WhatsApp Bot Connected!");
+            isBotConnected = true;
+            latestQR = null;
+        }
+    });
+
+    // 3. Message Handling
     sock.ev.on("messages.upsert", async ({ messages }) => {
         const msg = messages[0];
 
         if (!msg.message || msg.key.fromMe) return;
 
         const sender = msg.key.remoteJid;
-
-        const text =
-            msg.message.conversation ||
-            msg.message.extendedTextMessage?.text ||
-            "";
+        
+        // Extract text OR location message
+        const text = msg.message.conversation || msg.message.extendedTextMessage?.text || "";
+        const locationMessage = msg.message.locationMessage; 
 
         // Reset session if user types "exit" or "clear"
         const cleanTextLower = text.trim().toLowerCase();
         if (cleanTextLower === "exit" || cleanTextLower === "clear") {
             delete users[sender];
+            await sock.sendMessage(sender, { text: "Session cleared. Say 'hi' to restart."});
+            return;
         }
 
         // Check if user is in normal chat mode
         if (users[sender] && users[sender].step === "NORMAL_CHAT") {
-            if (text.trim().toLowerCase() === "#bot") {
-                delete users[sender];
+            if (cleanTextLower === "#bot") {
+                delete users[sender]; // Restart bot setup
             } else {
                 return; // Do not respond, treat as normal WhatsApp chat
             }
@@ -402,13 +487,14 @@ async function startBot() {
 
 Reply with 1 or 2 / 1 లేదా 2 తో రిప్లై ఇవ్వండి / 1 या 2 के साथ उत्तर दें`,
             });
-
             return;
         }
 
         const user = users[sender];
 
-        // Handle Chat Mode Selection
+        // ==========================
+        // 1. CHOOSE_MODE
+        // ==========================
         if (user.step === "CHOOSE_MODE") {
             const cleanText = text.trim();
             if (cleanText === "1") {
@@ -438,33 +524,18 @@ Reply with 1 or 2 / 1 లేదా 2 తో రిప్లై ఇవ్వం�
                         return;
                     }
                 } catch (dbErr) {
-                    console.error("❌ Error checking existing user on greeting:", dbErr.message);
+                    console.error("❌ Error checking existing user:", dbErr.message);
                 }
 
                 // Not registered, proceed to Language selection
                 user.step = "LANGUAGE";
                 await sock.sendMessage(sender, {
-                    text: `👋 Welcome to Apna Mestri
-👋 Apna Mestri కి స్వాగతం
-👋 Apna Mestri में आपका स्वागत है
-
-Choose Language / భాష ఎంచుకోండి / भाषा चुनें
-
-1. English
-2. తెలుగు
-3. हिन्दी`,
+                    text: `👋 Welcome to Apna Mestri\n👋 Apna Mestri కి స్వాగతం\n👋 Apna Mestri में आपका स्वागत है\n\nChoose Language / భాష ఎంచుకోండి / भाषा चुनें\n\n1. English\n2. తెలుగు\n3. हिन्दी`,
                 });
             } else if (cleanText === "2") {
                 user.step = "NORMAL_CHAT";
                 await sock.sendMessage(sender, {
-                    text: `🔌 Normal chat mode activated. The bot is now disabled.
-(If you want to use the bot again, reply with #bot)
-
-🔌 సాధారణ చాట్ మోడ్ సక్రియం చేయబడింది. బాట్ ఇప్పుడు నిలిపివేయబడింది.
-(మీరు మళ్లీ బాట్ ఉపయోగించాలనుకుంటే, #bot అని రిప్లై ఇవ్వండి)
-
-🔌 सामान्य चैट मोड सक्रिय हो गया है। बॉट अब बंद है।
-(यदि आप फिर से बॉट का उपयोग करना चाहते हैं, तो #bot का उत्तर दें)`,
+                    text: `🔌 Normal chat mode activated. The bot is now disabled.\n(If you want to use the bot again, reply with #bot)\n\n🔌 సాధారణ చాట్ మోడ్ సక్రియం చేయబడింది. బాట్ ఇప్పుడు నిలిపివేయబడింది.\n(మీరు మళ్లీ బాట్ ఉపయోగించాలనుకుంటే, #bot అని రిప్లై ఇవ్వండి)\n\n🔌 सामान्य चैट मोड सक्रिय हो गया है। बॉट अब बंद है।\n(यदि आप फिर से बॉट का उपयोग करना चाहते हैं, तो #bot का उत्तर दें)`,
                 });
             } else {
                 await sock.sendMessage(sender, {
@@ -474,9 +545,8 @@ Choose Language / భాష ఎంచుకోండి / भाषा चुन
             return;
         }
 
-
         // ==========================
-        // LANGUAGE
+        // 2. LANGUAGE
         // ==========================
         if (user.step === "LANGUAGE") {
             const languages = {
@@ -485,25 +555,24 @@ Choose Language / భాష ఎంచుకోండి / भाषा चुन
                 "3": "Hindi",
             };
 
-            if (!languages[text]) {
+            if (!languages[text.trim()]) {
                 await sock.sendMessage(sender, {
                     text: "Please select 1, 2 or 3\nదయచేసి 1, 2 లేదా 3 ఎంచుకోండి\nकृपया 1, 2 या 3 चुनें",
                 });
                 return;
             }
 
-            user.language = languages[text];
+            user.language = languages[text.trim()];
             user.step = "NAME";
 
             await sock.sendMessage(sender, {
                 text: t(user.language, "enterName"),
             });
-
             return;
         }
 
         // ==========================
-        // NAME
+        // 3. NAME
         // ==========================
         if (user.step === "NAME") {
             user.name = text;
@@ -512,12 +581,11 @@ Choose Language / భాష ఎంచుకోండి / भाषा चुन
             await sock.sendMessage(sender, {
                 text: t(user.language, "chooseCategory"),
             });
-
             return;
         }
 
         // ==========================
-        // CATEGORY
+        // 4. CATEGORY
         // ==========================
         if (user.step === "CATEGORY") {
             const categories = {
@@ -525,14 +593,14 @@ Choose Language / భాష ఎంచుకోండి / भाषा चुन
                 "2": "Non-Technical",
             };
 
-            if (!categories[text]) {
+            if (!categories[text.trim()]) {
                 await sock.sendMessage(sender, {
                     text: t(user.language, "invalidCategory"),
                 });
                 return;
             }
 
-            user.category = categories[text];
+            user.category = categories[text.trim()];
             user.step = "SKILL";
 
             await sock.sendMessage(sender, {
@@ -540,12 +608,11 @@ Choose Language / భాష ఎంచుకోండి / भाषा चुन
                     ? t(user.language, "chooseTechnicalSkill")
                     : t(user.language, "chooseNonTechnicalSkill"),
             });
-
             return;
         }
 
         // ==========================
-        // SKILL
+        // 5. SKILL
         // ==========================
         if (user.step === "SKILL") {
             const isTechnical = user.category === "Technical";
@@ -553,7 +620,7 @@ Choose Language / భాష ఎంచుకోండి / भाषा चुन
                 ? t(user.language, "technicalSkills")
                 : t(user.language, "nonTechnicalSkills");
 
-            if (!skillList[text]) {
+            if (!skillList[text.trim()]) {
                 await sock.sendMessage(sender, {
                     text: isTechnical
                         ? t(user.language, "invalidTechnicalSkill")
@@ -562,20 +629,18 @@ Choose Language / భాష ఎంచుకోండి / भाषा चुन
                 return;
             }
 
-            user.skillKey = text;
-            user.skill = skillList[text];
+            user.skillKey = text.trim();
+            user.skill = skillList[text.trim()];
             user.step = "WAGE";
 
             await sock.sendMessage(sender, {
                 text: t(user.language, "selectWage"),
             });
-
             return;
         }
 
-
         // ==========================
-        // WAGE
+        // 6. WAGE (FIXED)
         // ==========================
         if (user.step === "WAGE") {
             const wages = {
@@ -585,206 +650,94 @@ Choose Language / భాష ఎంచుకోండి / भाषा चुन
                 "4": "₹1500+",
             };
 
-            if (!wages[text]) {
+            if (!wages[text.trim()]) {
                 await sock.sendMessage(sender, {
                     text: t(user.language, "invalidWage"),
                 });
                 return;
             }
 
-            user.dailyWage = wages[text];
-            user.step = "PHONE";
+            user.dailyWage = wages[text.trim()];
+            user.step = "LOCATION";
 
             await sock.sendMessage(sender, {
-                text: t(user.language, "askPhone"),
+                text: t(user.language, "askLocation"),
             });
-
             return;
         }
 
         // ==========================
-        // PHONE
+        // 7. LOCATION
+        // ==========================
+        if (user.step === "LOCATION") {
+            if (locationMessage) {
+                user.location = {
+                    lat: locationMessage.degreesLatitude,
+                    lng: locationMessage.degreesLongitude
+                };
+                user.step = "PHONE";
+                await sock.sendMessage(sender, {
+                    text: t(user.language, "askPhone"),
+                });
+            } else {
+                await sock.sendMessage(sender, {
+                    text: t(user.language, "invalidLocation"),
+                });
+            }
+            return;
+        }
+
+        // ==========================
+        // 8. PHONE & DATABASE SAVE
         // ==========================
         if (user.step === "PHONE") {
-            const cleaned = text.replace(/[\s\-\(\)\+]/g, "");
+            // Strip out any non-numeric characters the user might type
+            const phoneStr = text.replace(/[^0-9]/g, '');
 
-            // Accept 10-digit numbers (or with country code like 91XXXXXXXXXX)
-            if (!/^\d{10}$/.test(cleaned) && !/^91\d{10}$/.test(cleaned)) {
+            if (phoneStr.length !== 10) {
                 await sock.sendMessage(sender, {
                     text: t(user.language, "invalidPhone"),
                 });
                 return;
             }
 
-            // Store as 10-digit number (strip 91 prefix if present)
-            const enteredPhone = cleaned.length === 12 && cleaned.startsWith("91")
-                ? cleaned.slice(2)
-                : cleaned;
+            user.phone = phoneStr;
 
-            // Check if phone number is already registered in DB
             try {
-                const existing = await Vendor.findOne({ Phone_number: enteredPhone });
-                if (existing) {
-                    await sock.sendMessage(sender, {
-                        text: t(user.language, "alreadyRegistered"),
-                    });
-                    user.step = "COMPLETE";
-                    user.phone = enteredPhone;
-                    return;
-                }
-            } catch (dbErr) {
-                console.error("❌ Error checking phone number existence:", dbErr.message);
-            }
+                // Generate secure credentials
+                user.email = await generateUniqueEmail(user.name);
+                user.password = generatePassword();
 
-            user.phone = enteredPhone;
-            user.step = "LOCATION";
-
-            await sock.sendMessage(sender, {
-                text: t(user.language, "askLocation"),
-            });
-
-            return;
-        }
-
-        // ==========================
-        // LOCATION
-        // ==========================
-        if (user.step === "LOCATION") {
-            if (!msg.message.locationMessage) {
-                await sock.sendMessage(sender, {
-                    text: t(user.language, "invalidLocation"),
+                // Save to MongoDB (Ensure these field names match your Vendor Model exactly)
+                const newVendor = new Vendor({
+                    Owner_name: user.name,
+                    Category: user.category,
+                    Skill: user.skill,
+                    Daily_wage: user.dailyWage,
+                    Location_Lat: user.location?.lat,
+                    Location_Lng: user.location?.lng,
+                    Phone_number: user.phone,
+                    Email_address: user.email,
+                    Password: user.password
                 });
-                return;
+
+                await newVendor.save();
+
+                // Send success payload
+                await sock.sendMessage(sender, {
+                    text: t(user.language, "registrationSuccess")(user),
+                });
+
+                // Auto-switch to normal chat to stop bot prompts
+                user.step = "NORMAL_CHAT";
+
+            } catch (error) {
+                console.error("❌ Error saving to database:", error);
+                await sock.sendMessage(sender, {
+                    text: "❌ An error occurred while saving your data. Please try again later or type 'exit' to restart.",
+                });
             }
-
-            user.latitude =
-                msg.message.locationMessage.degreesLatitude;
-
-            user.longitude =
-                msg.message.locationMessage.degreesLongitude;
-
-            user.status = "active";
-
-            user.step = "COMPLETE";
-
-            // Map bot skill to English category for DB storage
-            const englishSkills = user.category === "Technical"
-                ? translations["English"].technicalSkills
-                : translations["English"].nonTechnicalSkills;
-
-            const categoryName = englishSkills[user.skillKey] || user.skill;
-
-            // Generate random security password
-            user.password = generatePassword();
-
-            // Save to MongoDB
-            try {
-                const existingVendor = await Vendor.findOne({ Phone_number: user.phone });
-
-                if (!existingVendor) {
-                    // Generate unique email based on user's name
-                    user.email = await generateUniqueEmail(user.name);
-
-                    const vendor = new Vendor({
-                        Business_Name: null,
-                        Owner_name: user.name,
-                        Email_address: user.email,
-                        Phone_number: user.phone,
-                        Business_address: null,
-                        Category: user.category,
-                        Sub_Category: [categoryName],
-                        role: "Technical",
-                        Tax_ID: null,
-                        ID_Type: null,
-                        Password: user.password,
-                        ProductUrls: [],
-                        Profile_Image: "",
-                        Account_Number: null,
-                        IFSC_Code: null,
-                        Charge_Per_Hour_or_Day: user.dailyWage,
-                        Charge_Type: "Daily",
-                        Latitude: user.latitude,
-                        Longitude: user.longitude,
-                        Verified: false,
-                        description: null
-                    });
-
-                    await vendor.save();
-                    console.log("✅ Worker saved to MongoDB:", vendor._id);
-
-                    console.log("Worker Registered");
-                    console.log(user);
-
-                    const successMsg = t(user.language, "registrationSuccess");
-                    await sock.sendMessage(sender, {
-                        text: successMsg(user),
-                    });
-                } else {
-                    console.log("ℹ️ Worker already exists in DB:", existingVendor._id);
-                    await sock.sendMessage(sender, {
-                        text: t(user.language, "alreadyRegistered"),
-                    });
-                }
-            } catch (dbErr) {
-                console.error("❌ Error saving worker to MongoDB:", dbErr.message);
-            }
-
             return;
-        }
-
-        // ==========================
-        // REGISTERED USER
-        // ==========================
-        if (user.step === "COMPLETE") {
-            user.step = "NORMAL_CHAT";
-            await sock.sendMessage(sender, {
-                text: `${t(user.language, "alreadyRegistered")}\n\n🔌 Normal chat mode activated. The bot is now disabled. (Reply with #bot to activate it again.)`,
-            });
-        }
-    });
-
-    sock.ev.on("connection.update", async ({ connection, lastDisconnect, qr }) => {
-        // Display QR code in terminal for scanning
-        if (qr) {
-            latestQR = qr;
-            console.log("\n📱 Scan this QR code with WhatsApp:\n");
-            qrcode.generate(qr, { small: true });
-        }
-
-        if (connection === "close") {
-            isBotConnected = false;
-            const statusCode = lastDisconnect?.error?.output?.statusCode;
-            const errorReason = lastDisconnect?.error?.message || lastDisconnect?.error || "Unknown error";
-            const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-
-            console.log(`❌ WhatsApp Connection Closed. Reason: ${errorReason}. Status Code: ${statusCode}. Reconnecting: ${shouldReconnect}`);
-
-            if (shouldReconnect) {
-                console.log("🔄 Reconnecting in 5 seconds...");
-                setTimeout(() => {
-                    startBot();
-                }, 5000);
-            } else {
-                console.log("⚠️ Logged out from WhatsApp. Clearing session and restarting to scan new QR code...");
-                const fs = require("fs");
-                try {
-                    fs.rmSync("./auth", { recursive: true, force: true });
-                    console.log("✅ Session credentials cleared successfully.");
-                } catch (err) {
-                    console.error("❌ Failed to clear credentials directory:", err.message);
-                }
-
-                console.log("🔄 Starting fresh bot instance in 3 seconds...");
-                setTimeout(() => {
-                    startBot();
-                }, 3000);
-            }
-        }
-
-        if (connection === "open") {
-            isBotConnected = true;
-            latestQR = null;
-            console.log("✅ WhatsApp Bot Connected");
         }
     });
 }
