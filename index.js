@@ -397,8 +397,8 @@ async function startBot() {
             await sock.sendMessage(sender, {
                 text: `Choose Chat Mode / చాట్ మోడ్ ఎంచుకోండి / चैट मोड चुनें:
 
-1. Chat with Bot (Apna Mestri Bot) / బాట్‌తో చాట్ చేయండి / बॉट के साथ चैट करें
-2. Normal Chat (Human) / సాధారణ చాట్ / सामान्य चैट
+1. Register with us / మనతో రిజిస్టర్ అవ్వండి / हमारे साथ रजिस्टर करें
+2. Chat with us / మనతో చాట్ చేయండి / हमारे साथ चैट करें
 
 Reply with 1 or 2 / 1 లేదా 2 తో రిప్లై ఇవ్వండి / 1 या 2 के साथ उत्तर दें`,
             });
